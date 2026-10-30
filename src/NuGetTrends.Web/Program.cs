@@ -8,6 +8,7 @@ using NuGetTrends.Data.ClickHouse;
 using NuGetTrends.Web;
 using NuGetTrends.Web.Components;
 using NuGetTrends.Web.Client.Services;
+using Sentry.Serilog;
 using Serilog;
 using Swashbuckle.AspNetCore.SwaggerUI;
 using SystemEnvironment = System.Environment;
@@ -51,6 +52,7 @@ try
     builder.WebHost.UseConfiguration(configuration)
         .UseSentry(o =>
         {
+            o.UseSerilog();
             // Disable stacktrace attachment for log events - they only contain
             // system frames when logged from libraries like Polly/EF Core
             o.AttachStacktrace = false;
