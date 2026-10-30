@@ -8,6 +8,7 @@ using NuGetTrends.Data.ClickHouse;
 using NuGetTrends.Web;
 using NuGetTrends.Web.Components;
 using NuGetTrends.Web.Client.Services;
+using Sentry.Serilog;
 using Serilog;
 using Swashbuckle.AspNetCore.SwaggerUI;
 using SystemEnvironment = System.Environment;
@@ -51,6 +52,7 @@ try
     builder.WebHost.UseConfiguration(configuration)
         .UseSentry(o =>
         {
+            o.UseSerilog();
             // Disable stacktrace attachment for log events - they only contain
             // system frames when logged from libraries like Polly/EF Core
             o.AttachStacktrace = false;
@@ -262,12 +264,6 @@ try
     });
     app.MapStaticAssets();
 
-    // Enable WebAssembly debugging in development
-    if (app.Environment.IsDevelopment())
-    {
-        app.UseWebAssemblyDebugging();
-    }
-
     app.UseRouting();
     app.UseSentryTracing();
     app.UseAntiforgery();
@@ -303,12 +299,30 @@ try
 }
 catch (Exception ex)
 {
+    using var startupSentry = InitSentryForStartupFailure();
     Log.Fatal(ex, "Host terminated unexpectedly");
     return 1;
 }
 finally
 {
     Log.CloseAndFlush();
+}
+
+// The Serilog sink no longer starts Sentry, so a failure before UseSentry starts the SDK would be dropped
+IDisposable? InitSentryForStartupFailure()
+{
+    var dsn = configuration["Sentry:Dsn"];
+    if (SentrySdk.IsEnabled || !Uri.IsWellFormedUriString(dsn, UriKind.Absolute))
+    {
+        return null;
+    }
+
+    return SentrySdk.Init(o =>
+    {
+        o.Dsn = dsn;
+        o.Environment = environment.ToLowerInvariant();
+        o.UseSerilog();
+    });
 }
 
 // Required for WebApplicationFactory in integration tests
