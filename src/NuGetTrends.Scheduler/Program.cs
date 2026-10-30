@@ -39,6 +39,7 @@ public class Program
         }
         catch (Exception ex)
         {
+            using var startupSentry = InitSentryForStartupFailure();
             Log.Fatal(ex, "Host terminated unexpectedly");
             return 1;
         }
@@ -46,6 +47,23 @@ public class Program
         {
             Log.CloseAndFlush();
         }
+    }
+
+    // The Serilog sink no longer starts Sentry, so a failure before UseSentry starts the SDK would be dropped
+    private static IDisposable? InitSentryForStartupFailure()
+    {
+        var dsn = Configuration["Sentry:Dsn"];
+        if (SentrySdk.IsEnabled || !Uri.IsWellFormedUriString(dsn, UriKind.Absolute))
+        {
+            return null;
+        }
+
+        return SentrySdk.Init(o =>
+        {
+            o.Dsn = dsn;
+            o.Environment = Environment.ToLowerInvariant();
+            o.UseSerilog();
+        });
     }
 
     public static IHostBuilder CreateHostBuilder(string[] args) =>

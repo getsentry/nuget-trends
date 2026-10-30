@@ -299,12 +299,30 @@ try
 }
 catch (Exception ex)
 {
+    using var startupSentry = InitSentryForStartupFailure();
     Log.Fatal(ex, "Host terminated unexpectedly");
     return 1;
 }
 finally
 {
     Log.CloseAndFlush();
+}
+
+// The Serilog sink no longer starts Sentry, so a failure before UseSentry starts the SDK would be dropped
+IDisposable? InitSentryForStartupFailure()
+{
+    var dsn = configuration["Sentry:Dsn"];
+    if (SentrySdk.IsEnabled || !Uri.IsWellFormedUriString(dsn, UriKind.Absolute))
+    {
+        return null;
+    }
+
+    return SentrySdk.Init(o =>
+    {
+        o.Dsn = dsn;
+        o.Environment = environment.ToLowerInvariant();
+        o.UseSerilog();
+    });
 }
 
 // Required for WebApplicationFactory in integration tests
