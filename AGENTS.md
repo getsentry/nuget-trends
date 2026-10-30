@@ -149,7 +149,7 @@ The Sentry Browser JS SDK is loaded in `App.razor` (conditional on `Sentry:Dsn` 
 
 All Hangfire jobs and background workers should be instrumented with Sentry:
 
-- **Metrics**: Use `hub.Metrics.EmitCounter`, `hub.Metrics.EmitGauge`, and `hub.Metrics.EmitDistribution` to track key operational data (packages processed, queue sizes, job completions/failures). Use `SentrySdk.Experimental.Metrics` in classes that use the static API (e.g., `DailyDownloadWorker`).
+- **Metrics**: Use `hub.Metrics.EmitCounter`, `hub.Metrics.EmitGauge`, and `hub.Metrics.EmitDistribution` to track key operational data (packages processed, queue sizes, job completions/failures). Use `SentrySdk.Metrics` in classes that use the static API (e.g., `DailyDownloadWorker`).
 - **Transactions and spans**: Wrap significant operations in Sentry transactions (`SentrySdk.StartTransaction`) with child spans (`transaction.StartChild` / `span.StartChild`) for sub-operations like DB queries, API calls, queue processing, and serialization. Finish spans and set status to `SpanStatus.Ok` or `SpanStatus.InternalError` as appropriate.
 - **Naming conventions**: Use dot-separated hierarchical names — `scheduler.job.completed`, `scheduler.daily_download.packages_queued`, `worker.queue_latency`. Tag metrics with `job_name` for filtering.
 - When adding a new Hangfire job, follow the pattern in `TfmAdoptionSnapshotRefresher.cs` and `DailyDownloadPackageIdPublisher.cs` for metrics emission.
